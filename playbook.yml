@@ -1,0 +1,35 @@
+---
+- name: Deploy example-teamcity
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Java
+      apt:
+        name: openjdk-17-jdk
+        state: present
+
+    - name: Install Maven
+      apt:
+        name: maven
+        state: present
+
+    - name: Build project
+      shell: |
+        cd /home/ubuntu/example-teamcity
+        mvn clean package
+      args:
+        chdir: /home/ubuntu/example-teamcity
+
+    - name: Find JAR file
+      find:
+        paths: /home/ubuntu/example-teamcity/target
+        patterns: "*.jar"
+        excludes: "original-*"
+      register: jar_files
+
+    - name: Copy found JAR
+      copy:
+        src: "{{ jar_files.files[0].path }}"
+        dest: /opt/example-teamcity.jar
+        remote_src: yes
+      when: jar_files.files | length > 0
